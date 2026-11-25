@@ -5,10 +5,9 @@ import { useEffect, type ReactNode } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "@/i18n/routing";
-import type { Role } from "@/lib/types";
 
 /** Client-side guard for UX only. The API enforces auth and roles on every request. */
-export function RequireAuth({ role, children }: { role?: Role; children: ReactNode }) {
+export function RequireAuth({ admin, children }: { admin?: boolean; children: ReactNode }) {
   const { user, ready } = useAuth();
   const router = useRouter();
   const t = useTranslations("common");
@@ -25,8 +24,9 @@ export function RequireAuth({ role, children }: { role?: Role; children: ReactNo
       </div>
     );
   }
-  if (role && user.role !== role) {
-    return <p className="mx-auto max-w-page px-4 py-12 text-ink-soft sm:px-6">{t("forbidden")}</p>;
+  if (admin && !user.is_admin) {
+    // Same as a missing page: the admin area does not reveal itself.
+    return <p className="mx-auto max-w-page px-4 py-12 text-ink-soft sm:px-6">{t("notFound")}</p>;
   }
   return <>{children}</>;
 }

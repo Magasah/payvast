@@ -19,9 +19,9 @@ export default async function HomePage({ params: { locale } }: { params: { local
 
   return (
     <main>
-      <section className="mx-auto grid max-w-page items-center gap-10 px-4 pb-14 pt-10 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pb-20 lg:pt-16">
-        <div className="max-w-prose">
-          <h1 className="text-4xl font-black leading-[1.05] tracking-display sm:text-5xl">
+      <section className="mx-auto grid max-w-page grid-cols-[minmax(0,1fr)] items-center gap-10 px-4 pb-14 pt-10 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-16 lg:pb-20 lg:pt-16">
+        <div className="min-w-0 max-w-prose">
+          <h1 className="hyphens-auto break-words text-[2rem] font-black leading-[1.08] tracking-display min-[360px]:text-4xl sm:text-5xl">
             {t("title")}
           </h1>
           <p className="mt-5 text-lg text-ink-soft">{t("subtitle")}</p>

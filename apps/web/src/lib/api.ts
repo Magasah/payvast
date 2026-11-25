@@ -102,6 +102,29 @@ export async function register(email: string, password: string, locale: string):
   return setSession(data) as User;
 }
 
+/** Sign in from inside the Telegram Mini App with the signed initData Telegram gave us. */
+export async function telegramLogin(initData: string): Promise<User> {
+  const data = await api<TokenResponse>("/api/auth/telegram", {
+    method: "POST",
+    body: JSON.stringify({ init_data: initData }),
+  });
+  return setSession(data) as User;
+}
+
+/**
+ * Telegram opens a Mini App with `#tgWebAppData=<initData>&tgWebAppVersion=...` in the URL.
+ * Read it once and remove it from the address bar so it is not shared by copy-paste.
+ */
+export function takeTelegramInitData(): string | null {
+  if (typeof window === "undefined" || !window.location.hash.includes("tgWebAppData=")) {
+    return null;
+  }
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const data = params.get("tgWebAppData");
+  window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  return data && data.length <= 4096 ? data : null;
+}
+
 export async function logout(): Promise<void> {
   try {
     await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });

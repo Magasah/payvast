@@ -7,7 +7,7 @@ export type Tone = "lapis" | "pistachio" | "saffron" | "pomegranate" | "neutral"
 const tones: Record<Tone, string> = {
   lapis: "bg-lapis-tint text-lapis-deep",
   pistachio: "bg-pistachio-tint text-pistachio",
-  saffron: "bg-saffron-tint text-[#8a560c]",
+  saffron: "bg-saffron-tint text-saffron-ink",
   pomegranate: "bg-pomegranate-tint text-pomegranate",
   neutral: "bg-paper text-ink-soft",
 };

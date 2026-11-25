@@ -24,3 +24,18 @@ export function formatDate(iso: string, locale: string): string {
 export function planName(plan: { name_tg: string; name_ru: string }, locale: string): string {
   return locale === "ru" ? plan.name_ru : plan.name_tg;
 }
+
+/** Short display name for a user in the admin area. */
+export function userTitle(
+  u: { telegram_username: string | null; email: string | null; telegram_id?: number | null },
+  fallback: string,
+): string {
+  if (u.telegram_username) return `@${u.telegram_username}`;
+  return u.email ?? (u.telegram_id ? `tg ${u.telegram_id}` : fallback);
+}
+
+export function formatDateTime(iso: string, locale: string): string {
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  return `${formatDate(iso, locale)}, ${time}`;
+}

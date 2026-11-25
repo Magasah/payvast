@@ -2,8 +2,11 @@ export type Role = "user" | "admin";
 
 export interface User {
   id: string;
-  email: string;
+  email: string | null;
+  telegram_username: string | null;
+  has_telegram: boolean;
   role: Role;
+  is_admin: boolean;
   locale: string;
 }
 
@@ -24,12 +27,18 @@ export interface Plan {
   device_limit: number;
 }
 
-export type PaymentMethod = "alif" | "dushanbe_city";
+export type PaymentMethod = "alif" | "dushanbe_city" | "card";
 export type PaymentStatus = "awaiting_receipt" | "pending_review" | "confirmed" | "rejected";
+
+export type BankCode = "alif" | "dc" | "sber" | "tbank";
 
 export interface PaymentMethodInfo {
   method: PaymentMethod;
-  wallet: string;
+  account_kind: "phone" | "card";
+  account: string;
+  recipient: string;
+  fee_percent: number;
+  banks: { code: BankCode; url: string }[];
 }
 
 export interface Payment {
@@ -54,9 +63,13 @@ export interface Subscription {
   subscription_url: string | null;
 }
 
+export type SubStatus = Subscription["status"];
+
 export interface AdminPayment {
   id: string;
-  user_email: string;
+  user_id: string;
+  user_email: string | null;
+  user_telegram: string | null;
   plan_code: string;
   method: PaymentMethod;
   amount_dirams: number;
@@ -66,4 +79,43 @@ export interface AdminPayment {
   created_at: string;
   reviewed_at: string | null;
   reject_reason: string | null;
+}
+
+export interface AdminSubscription {
+  id: string;
+  status: SubStatus;
+  expires_at: string;
+  days_left: number;
+  device_limit: number;
+  server_id: number | null;
+  subscription_url: string;
+}
+
+export interface AdminUserRow {
+  id: string;
+  email: string | null;
+  telegram_id: number | null;
+  telegram_username: string | null;
+  is_admin: boolean;
+  is_active: boolean;
+  locale: string;
+  created_at: string;
+  subscription_status: SubStatus | null;
+  expires_at: string | null;
+}
+
+export interface AdminUserDetail {
+  user: AdminUserRow;
+  subscription: AdminSubscription | null;
+  payments: AdminPayment[];
+}
+
+export interface AuditEntry {
+  id: number;
+  created_at: string;
+  admin: string | null;
+  action: string;
+  target_type: string;
+  target_id: string;
+  details: Record<string, unknown>;
 }

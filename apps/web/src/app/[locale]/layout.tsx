@@ -10,7 +10,7 @@ import { routing, type Locale } from "@/i18n/routing";
 
 import "../globals.css";
 
-const CLIENT_NAMESPACES = ["nav", "auth", "cabinet", "admin", "errors", "common", "plans"];
+const CLIENT_NAMESPACES = ["nav", "auth", "cabinet", "pay", "admin", "errors", "common", "plans"];
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

@@ -27,7 +27,7 @@ const config: Config = {
       line: token("line"),
       lapis: { DEFAULT: token("lapis"), deep: token("lapis-deep"), tint: token("lapis-tint") },
       pomegranate: { DEFAULT: token("pomegranate"), tint: token("pomegranate-tint") },
-      saffron: { DEFAULT: token("saffron"), tint: token("saffron-tint") },
+      saffron: { DEFAULT: token("saffron"), tint: token("saffron-tint"), ink: token("saffron-ink") },
       pistachio: { DEFAULT: token("pistachio"), tint: token("pistachio-tint") },
     },
     borderRadius: {

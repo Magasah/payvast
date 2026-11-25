@@ -6,8 +6,8 @@ import { useCallback, useEffect, useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
 import { Pass } from "@/components/Pass";
 import { TariffRow } from "@/components/TariffRow";
-import { Badge, Button, Notice, Panel, cx } from "@/components/ui";
-import { Link } from "@/i18n/routing";
+import { Badge, Button, ButtonLink, Icon, Notice, Panel, cx, type IconName } from "@/components/ui";
+import { Link, useRouter } from "@/i18n/routing";
 import { ApiError, api, imageUrl } from "@/lib/api";
 import { formatDate, formatSomoni, planName } from "@/lib/format";
 import { PAYMENT_TONE, SUB_TONE } from "@/lib/status";
@@ -19,9 +19,11 @@ import type {
   Subscription,
 } from "@/lib/types";
 
-const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
-const RECEIPT_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
+const METHOD_ICON: Record<PaymentMethod, IconName> = {
+  alif: "phone",
+  dushanbe_city: "wallet",
+  card: "card",
+};
 
 function newIdempotencyKey(): string {
   return crypto.randomUUID().replaceAll("-", "");
@@ -32,6 +34,7 @@ export function Cabinet() {
   const tp = useTranslations("plans");
   const te = useTranslations("errors");
   const locale = useLocale();
+  const router = useRouter();
 
   const [loaded, setLoaded] = useState(false);
   const [sub, setSub] = useState<Subscription | null>(null);
@@ -88,40 +91,20 @@ export function Cabinet() {
     setBusy(true);
     setError(null);
     try {
-      await api<Payment>("/api/payments", {
+      const created = await api<Payment>("/api/payments", {
         method: "POST",
         body: JSON.stringify({ plan_id: planId, method }),
         // Same key on retry or double tap: the server returns the same payment.
         headers: { "Idempotency-Key": idemKey },
       });
       setIdemKey(newIdempotencyKey());
-      await load();
+      router.push(`/cabinet/pay/${created.id}`);
     } catch (err) {
       showError(err);
-    } finally {
       setBusy(false);
     }
   }
 
-  async function uploadReceipt(paymentId: string, file: File | undefined) {
-    setError(null);
-    if (!file) return;
-    if (!RECEIPT_TYPES.includes(file.type)) return setError(te("invalid_image"));
-    if (file.size > MAX_RECEIPT_BYTES) return setError(te("file_too_large"));
-    const body = new FormData();
-    body.append("file", file);
-    setBusy(true);
-    try {
-      await api<Payment>(`/api/payments/${paymentId}/receipt`, { method: "POST", body });
-      await load();
-    } catch (err) {
-      showError(err);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const wallet = (m: PaymentMethod) => methods.find((x) => x.method === m)?.wallet ?? "";
   const open = payments.filter(
     (p) => p.status === "awaiting_receipt" || p.status === "pending_review",
   );
@@ -199,54 +182,33 @@ export function Cabinet() {
         </Panel>
       )}
 
-      {open.map((p) => (
-        <Panel key={p.id} className="border-l-4 border-l-saffron">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-xl font-extrabold">{t("paymentTitle")}</h2>
-            <Badge tone={PAYMENT_TONE[p.status]}>{t(`paymentStatuses.${p.status}`)}</Badge>
-          </div>
-          {p.status === "awaiting_receipt" ? (
-            <ol className="mt-5 grid gap-6 md:grid-cols-2">
-              <li>
-                <p className="text-sm font-semibold text-ink-soft">{t("step1")}</p>
-                <p className="tabular mt-2 font-display text-3xl font-black text-lapis-deep">
+      {open.map((p) => {
+        const plan = planById(p.plan_id);
+        return (
+          <Panel key={p.id} className="border-l-4 border-l-saffron">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-lg font-extrabold">
+                  {plan ? planName(plan, locale) : t("paymentTitle")} ·{" "}
                   {formatSomoni(p.amount_dirams, locale)}
+                </h2>
+                <p className="mt-0.5 text-sm text-ink-soft">
+                  {t(`methods.${p.method}`)} · {formatDate(p.created_at, locale)}
                 </p>
-                <p className="mt-1 text-sm text-ink-soft">
-                  {t("toWallet", { method: t(`methods.${p.method}`) })}
-                </p>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="tabular text-lg font-semibold">{wallet(p.method)}</span>
-                  <CopyButton value={wallet(p.method)} />
-                </div>
-              </li>
-              <li>
-                <p className="text-sm font-semibold text-ink-soft">{t("step2")}</p>
-                <label
-                  className={cx(
-                    "mt-2 flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-line bg-paper px-4 py-6 text-center transition-colors hover:border-lapis",
-                    busy && "pointer-events-none opacity-60",
-                  )}
-                >
-                  <span className="font-semibold text-lapis">{t("chooseFile")}</span>
-                  <span className="mt-1 text-xs text-ink-soft">{t("receiptHint")}</span>
-                  <input
-                    type="file"
-                    accept={RECEIPT_TYPES.join(",")}
-                    disabled={busy}
-                    onChange={(e) => uploadReceipt(p.id, e.target.files?.[0])}
-                    className="sr-only"
-                  />
-                </label>
-              </li>
-            </ol>
-          ) : (
-            <p className="mt-3 text-ink-soft">
-              {t("waitingReview", { amount: formatSomoni(p.amount_dirams, locale) })}
-            </p>
-          )}
-        </Panel>
-      ))}
+              </div>
+              <Badge tone={PAYMENT_TONE[p.status]}>{t(`paymentStatuses.${p.status}`)}</Badge>
+            </div>
+            <ButtonLink
+              href={`/cabinet/pay/${p.id}`}
+              tone={p.status === "awaiting_receipt" ? "primary" : "quiet"}
+              className="mt-4 w-full sm:w-auto"
+            >
+              {p.status === "awaiting_receipt" ? t("continuePay") : t("viewPayment")}
+              <Icon name="forward" size={18} />
+            </ButtonLink>
+          </Panel>
+        );
+      })}
 
       <section>
         <h2 className="text-2xl font-black tracking-display">{sub ? t("extend") : t("buy")}</h2>
@@ -285,13 +247,15 @@ export function Cabinet() {
 
         <fieldset className="mt-5">
           <legend className="mb-2 text-sm font-semibold text-ink-soft">{t("method")}</legend>
-          <div className="inline-flex rounded-md border border-line bg-surface p-1">
+          <div className="grid gap-2 sm:grid-cols-3">
             {methods.map((m) => (
               <label
                 key={m.method}
                 className={cx(
-                  "cursor-pointer rounded-[9px] px-4 py-2 text-sm font-semibold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-lapis/40",
-                  method === m.method ? "bg-lapis text-white" : "text-ink-soft hover:text-ink",
+                  "flex min-h-14 cursor-pointer items-center gap-3 rounded-md border px-4 py-3 text-sm font-semibold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-lapis/40",
+                  method === m.method
+                    ? "border-lapis bg-lapis-tint text-lapis-deep"
+                    : "border-line bg-surface text-ink hover:border-lapis",
                 )}
               >
                 <input
@@ -301,7 +265,13 @@ export function Cabinet() {
                   checked={method === m.method}
                   onChange={() => setMethod(m.method)}
                 />
-                {t(`methods.${m.method}`)}
+                <Icon name={METHOD_ICON[m.method]} />
+                <span className="min-w-0">
+                  {t(`methods.${m.method}`)}
+                  <span className="block text-xs font-normal text-ink-soft">
+                    {t(`methodHints.${m.method}`)}
+                  </span>
+                </span>
               </label>
             ))}
           </div>
@@ -314,6 +284,7 @@ export function Cabinet() {
           onClick={createPayment}
         >
           {t("pay")}
+          <Icon name="forward" size={20} />
         </Button>
       </section>
 

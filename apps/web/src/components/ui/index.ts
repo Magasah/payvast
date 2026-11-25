@@ -5,3 +5,4 @@ export { Field, inputClass } from "./Field";
 export { Ikat } from "./Ikat";
 export { Notice } from "./Notice";
 export { Panel } from "./Panel";
+export { Icon, type IconName } from "./Icon";

@@ -3,9 +3,12 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 
-import { Button, Field, Notice } from "@/components/ui";
+import { Button, Field, Icon, Notice, buttonClass } from "@/components/ui";
 import { Link, useRouter } from "@/i18n/routing";
 import { ApiError, login, register } from "@/lib/api";
+
+// Public bot username (not a secret), e.g. "payvastvpn_bot". Baked in at build time.
+const BOT = (process.env.NEXT_PUBLIC_TG_BOT_USERNAME ?? "").replace(/[^A-Za-z0-9_]/g, "");
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const t = useTranslations("auth");
@@ -29,7 +32,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     setBusy(true);
     try {
       const user = isLogin ? await login(email, password) : await register(email, password, locale);
-      router.push(user.role === "admin" ? "/admin/payments" : "/cabinet");
+      router.push(user.is_admin ? "/admin/payments" : "/cabinet");
     } catch (err) {
       const code = err instanceof ApiError ? err.code : "error";
       setError(te.has(code) ? te(code) : te("error"));
@@ -43,6 +46,23 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         {t(isLogin ? "loginTitle" : "registerTitle")}
       </h1>
       <p className="mt-2 text-ink-soft">{t(isLogin ? "loginLead" : "registerLead")}</p>
+      {BOT && (
+        <>
+          <a
+            href={`https://t.me/${BOT}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonClass("primary", "lg", "mt-8 w-full")}
+          >
+            <Icon name="send" />
+            {t("viaTelegram")}
+          </a>
+          <p className="mt-2 text-center text-xs text-ink-soft">{t("viaTelegramHint")}</p>
+          <p className="mt-6 flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-ink-soft before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
+            {t("orEmail")}
+          </p>
+        </>
+      )}
       <form onSubmit={onSubmit} className="mt-8 space-y-5">
         <Field
           label={t("email")}

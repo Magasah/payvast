@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-import { onAuthChange, refreshSession } from "@/lib/api";
+import { onAuthChange, refreshSession, takeTelegramInitData, telegramLogin } from "@/lib/api";
 import type { User } from "@/lib/types";
 
 interface AuthState {
@@ -17,7 +17,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const off = onAuthChange((user) => setState({ user, ready: true }));
-    void refreshSession();
+    const initData = takeTelegramInitData();
+    // Inside Telegram: sign in with the signed Mini App data, else restore from the cookie.
+    if (initData) telegramLogin(initData).catch(() => refreshSession());
+    else void refreshSession();
     return off;
   }, []);
 

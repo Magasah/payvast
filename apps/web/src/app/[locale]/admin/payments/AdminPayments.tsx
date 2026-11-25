@@ -3,7 +3,8 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
-import { Badge, Button, Notice, cx, inputClass } from "@/components/ui";
+import { Badge, Button, Icon, Notice, cx, inputClass } from "@/components/ui";
+import { Link } from "@/i18n/routing";
 import { ApiError, api, imageUrl } from "@/lib/api";
 import { formatDate, formatSomoni } from "@/lib/format";
 import { PAYMENT_TONE } from "@/lib/status";
@@ -67,10 +68,10 @@ export function AdminPayments() {
   }
 
   return (
-    <main className="mx-auto max-w-page px-4 py-10 sm:px-6">
-      <h1 className="text-3xl font-black tracking-display">{t("title")}</h1>
+    <div>
+      <h1 className="text-2xl font-black tracking-display sm:text-3xl">{t("title")}</h1>
 
-      <div role="tablist" className="mt-6 flex flex-wrap gap-2">
+      <div role="tablist" className="-mx-4 mt-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
         {TABS.map((s) => (
           <button
             key={s}
@@ -82,7 +83,7 @@ export function AdminPayments() {
               setPending(null);
             }}
             className={cx(
-              "rounded-md px-4 py-2 text-sm font-semibold transition-colors",
+              "shrink-0 whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold transition-colors",
               tab === s ? "bg-lapis text-white" : "border border-line bg-surface text-ink-soft hover:text-ink",
             )}
           >
@@ -104,10 +105,15 @@ export function AdminPayments() {
           const isPending = pending?.id === p.id;
           const open = p.status === "pending_review" || p.status === "awaiting_receipt";
           return (
-            <div key={p.id} className="px-5 py-4">
+            <div key={p.id} className="px-4 py-4 sm:px-5">
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{p.user_email}</p>
+                  <Link
+                    href={`/admin/users/${p.user_id}`}
+                    className="block truncate font-semibold text-lapis-deep hover:underline"
+                  >
+                    {p.user_telegram ? `@${p.user_telegram}` : (p.user_email ?? t("noName"))}
+                  </Link>
                   <p className="text-sm text-ink-soft">
                     {formatDate(p.created_at, locale)}, {tc(`methods.${p.method}`)},{" "}
                     {p.plan_code} ({p.duration_days} {t("days")})
@@ -126,6 +132,7 @@ export function AdminPayments() {
                         setReceipt(await imageUrl(`/api/admin/payments/${p.id}/receipt`))
                       }
                     >
+                      <Icon name="eye" size={16} />
                       {t("receipt")}
                     </Button>
                   )}
@@ -133,10 +140,12 @@ export function AdminPayments() {
                     <>
                       {p.status === "pending_review" && (
                         <Button size="sm" tone="success" onClick={() => setPending({ id: p.id, action: "confirm" })}>
+                          <Icon name="check" size={16} />
                           {t("confirm")}
                         </Button>
                       )}
                       <Button size="sm" tone="quiet" onClick={() => setPending({ id: p.id, action: "reject" })}>
+                        <Icon name="x" size={16} />
                         {t("reject")}
                       </Button>
                     </>
@@ -164,7 +173,19 @@ export function AdminPayments() {
                     void run(p.id, "reject");
                   }}
                 >
-                  <label className="min-w-0 flex-1 text-sm font-medium">
+                  <div className="flex w-full flex-wrap gap-2">
+                    {(["reasonAmount", "reasonUnreadable", "reasonNotFound"] as const).map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setReason(t(k))}
+                        className="rounded-sm border border-pomegranate/30 bg-surface px-2.5 py-1 text-xs font-medium text-ink hover:border-pomegranate"
+                      >
+                        {t(k)}
+                      </button>
+                    ))}
+                  </div>
+                  <label className="min-w-0 flex-1 basis-56 text-sm font-medium">
                     {t("rejectReason")}
                     <input
                       autoFocus
@@ -191,16 +212,24 @@ export function AdminPayments() {
 
       {receipt && (
         <div
-          className="fixed inset-0 z-20 flex items-center justify-center bg-ink/70 p-4"
+          className="fixed inset-0 z-40 flex items-center justify-center bg-ink/70 p-4"
           onClick={() => setReceipt(null)}
           role="dialog"
           aria-modal="true"
           aria-label={t("receipt")}
         >
+          <button
+            type="button"
+            onClick={() => setReceipt(null)}
+            aria-label={t("close")}
+            className="absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-ink"
+          >
+            <Icon name="x" />
+          </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={receipt} alt={t("receipt")} className="max-h-full max-w-full rounded-md bg-white" />
         </div>
       )}
-    </main>
+    </div>
   );
 }

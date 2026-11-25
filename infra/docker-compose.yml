@@ -36,6 +36,7 @@ services:
       context: ../apps/web
       args:
         API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
+        NEXT_PUBLIC_TG_BOT_USERNAME: ${TG_BOT_USERNAME:-}
     restart: unless-stopped
     environment:
       API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}

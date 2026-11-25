@@ -63,6 +63,7 @@
     --c-pomegranate-tint: 251 231 234;
     --c-saffron: 217 142 31; /* #D98E1F waiting states */
     --c-saffron-tint: 252 240 219;
+    --c-saffron-ink: 138 86 12; /* #8A560C saffron text on light backgrounds (AA) */
     --c-pistachio: 47 125 79; /* #2F7D4F success, active */
     --c-pistachio-tint: 225 241 231;
   }
