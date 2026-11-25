@@ -10,6 +10,7 @@ import getpass
 import os
 import sys
 
+from email_validator import EmailNotValidError, validate_email
 from sqlalchemy import select
 
 from app.db import SessionLocal, engine
@@ -31,7 +32,10 @@ async def create_admin(email: str) -> None:
     password = os.environ.get("PAYVAST_ADMIN_PASSWORD") or getpass.getpass("Password: ")
     if len(password) < 12:
         sys.exit("Admin password must be at least 12 characters")
-    email = email.strip().lower()
+    try:
+        email = validate_email(email.strip(), check_deliverability=False).normalized.lower()
+    except EmailNotValidError as exc:
+        sys.exit(f"Invalid email: {exc}")
     async with SessionLocal() as session:
         user = await session.scalar(select(User).where(User.email == email))
         if user is None:

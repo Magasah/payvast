@@ -107,7 +107,7 @@ async def _user_from_refresh(request: Request, session: SessionDep) -> User:
 
 
 @router.post("/refresh", response_model=TokenOut)
-@limiter.limit(settings.rate_limit_login)
+@limiter.limit(settings.rate_limit_refresh)
 async def refresh(request: Request, response: Response, session: SessionDep) -> TokenOut:
     user = await _user_from_refresh(request, session)
     return _token_response(response, user)

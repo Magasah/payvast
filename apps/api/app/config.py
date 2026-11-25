@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     rate_limit_login: str = "5/minute"
     rate_limit_register: str = "3/minute"
     rate_limit_payment: str = "10/minute"
+    # Every full page load restores the session via /refresh, so this one is looser.
+    rate_limit_refresh: str = "30/minute"
     rate_limit_enabled: bool = True
 
 

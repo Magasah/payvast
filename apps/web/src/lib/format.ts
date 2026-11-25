@@ -1,17 +1,24 @@
 export function formatSomoni(dirams: number, locale: string): string {
-  const value = (dirams / 100).toLocaleString(locale === "ru" ? "ru-RU" : "tg-TJ", {
+  const value = (dirams / 100).toLocaleString("ru-RU", {
     minimumFractionDigits: dirams % 100 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
   });
   return `${value} ${locale === "ru" ? "сомони" : "сомонӣ"}`;
 }
 
+// Browsers often ship without Tajik locale data (they fall back to English),
+// so Tajik month names are spelled out here.
+const TG_MONTHS = [
+  "январ", "феврал", "март", "апрел", "май", "июн",
+  "июл", "август", "сентябр", "октябр", "ноябр", "декабр",
+];
+
 export function formatDate(iso: string, locale: string): string {
-  return new Date(iso).toLocaleDateString(locale === "ru" ? "ru-RU" : "tg-TJ", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const date = new Date(iso);
+  if (locale === "tg") {
+    return `${date.getDate()} ${TG_MONTHS[date.getMonth()]}и ${date.getFullYear()}`;
+  }
+  return date.toLocaleDateString("ru-RU", { year: "numeric", month: "long", day: "numeric" });
 }
 
 export function planName(plan: { name_tg: string; name_ru: string }, locale: string): string {
