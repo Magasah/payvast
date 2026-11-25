@@ -40,7 +40,10 @@ extend-exclude = ["alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "SIM", "RUF"]
-ignore = ["B008"]  # FastAPI Depends() in defaults
+ignore = [
+  "B008",    # FastAPI Depends() in defaults
+  "RUF001",  # Cyrillic text is expected (tg/ru UI)
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106", "S107"]
