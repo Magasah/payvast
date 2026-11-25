@@ -58,11 +58,13 @@ async def create_payment(
 ) -> PaymentOut:
     if not IDEMPOTENCY_RE.fullmatch(idempotency_key):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail="bad_idempotency_key")
+    # Plain value: ORM objects expire on rollback and must not be touched after it.
+    user_id = user.id
 
     async def existing() -> Payment | None:
         result = await session.scalars(
             select(Payment).where(
-                Payment.user_id == user.id, Payment.idempotency_key == idempotency_key
+                Payment.user_id == user_id, Payment.idempotency_key == idempotency_key
             )
         )
         return result.first()
@@ -86,13 +88,13 @@ async def create_payment(
     open_count = await session.scalar(
         select(func.count())
         .select_from(Payment)
-        .where(Payment.user_id == user.id, Payment.status.in_(OPEN_STATUSES))
+        .where(Payment.user_id == user_id, Payment.status.in_(OPEN_STATUSES))
     )
     if (open_count or 0) >= MAX_OPEN_PAYMENTS:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="too_many_open_payments")
 
     payment = Payment(
-        user_id=user.id,
+        user_id=user_id,
         plan_id=plan.id,
         idempotency_key=idempotency_key,
         provider=get_payment_provider().name,
