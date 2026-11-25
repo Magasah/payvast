@@ -64,6 +64,11 @@ npm run dev                        # proxies /api/* to API_INTERNAL_URL (default
 - Site copy: describe the product as "защищённое подключение" / "пайвасти ҳифзшуда".
   No wording about bypassing blocks.
 
+## Web design
+
+Follow `apps/web/DESIGN.md`: tokens and components in `apps/web/src/components/ui`,
+no raw hex colors in pages, fonts only from `public/fonts` (Tajik letters must render).
+
 ## Workflow
 
 Small steps. After each step run ruff, mypy, pytest (api) and eslint, tsc (web).

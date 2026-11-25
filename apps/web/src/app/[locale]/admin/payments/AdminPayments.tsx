@@ -3,11 +3,15 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
+import { Badge, Button, Notice, cx, inputClass } from "@/components/ui";
 import { ApiError, api, imageUrl } from "@/lib/api";
 import { formatDate, formatSomoni } from "@/lib/format";
+import { PAYMENT_TONE } from "@/lib/status";
 import type { AdminPayment, PaymentStatus } from "@/lib/types";
 
 const TABS: PaymentStatus[] = ["pending_review", "awaiting_receipt", "confirmed", "rejected"];
+
+type Pending = { id: string; action: "confirm" | "reject" } | null;
 
 export function AdminPayments() {
   const t = useTranslations("admin");
@@ -16,148 +20,185 @@ export function AdminPayments() {
   const locale = useLocale();
 
   const [tab, setTab] = useState<PaymentStatus>("pending_review");
-  const [rows, setRows] = useState<AdminPayment[]>([]);
-  const [receipt, setReceipt] = useState<{ id: string; url: string } | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [rows, setRows] = useState<AdminPayment[] | null>(null);
+  const [receipt, setReceipt] = useState<string | null>(null);
+  const [pending, setPending] = useState<Pending>(null);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
   const load = useCallback(async () => {
     setRows(await api<AdminPayment[]>(`/api/admin/payments?status=${tab}`));
   }, [tab]);
 
   useEffect(() => {
-    load().catch(() => setMessage(te("error")));
+    setRows(null);
+    load().catch(() => setNotice({ tone: "error", text: te("error") }));
   }, [load, te]);
 
-  useEffect(() => () => void (receipt && URL.revokeObjectURL(receipt.url)), [receipt]);
+  useEffect(() => {
+    if (!receipt) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setReceipt(null);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      URL.revokeObjectURL(receipt);
+    };
+  }, [receipt]);
 
-  async function act(id: string, action: "confirm" | "reject") {
-    let body: string | undefined;
-    if (action === "reject") {
-      const reason = window.prompt(t("rejectReason"))?.trim();
-      if (!reason || reason.length < 3) return;
-      body = JSON.stringify({ reason });
-    } else if (!window.confirm(t("confirmQuestion"))) {
-      return;
-    }
-    setBusyId(id);
-    setMessage(null);
+  async function run(id: string, action: "confirm" | "reject") {
+    setBusy(true);
+    setNotice(null);
     try {
-      await api(`/api/admin/payments/${id}/${action}`, { method: "POST", body });
-      setMessage(t(action === "confirm" ? "confirmed" : "rejected"));
-      setReceipt(null);
+      await api(`/api/admin/payments/${id}/${action}`, {
+        method: "POST",
+        body: action === "reject" ? JSON.stringify({ reason: reason.trim() }) : undefined,
+      });
+      setNotice({ tone: "success", text: t(action === "confirm" ? "confirmed" : "rejected") });
+      setPending(null);
+      setReason("");
       await load();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : "error";
-      setMessage(te.has(code) ? te(code) : te("error"));
+      setNotice({ tone: "error", text: te.has(code) ? te(code) : te("error") });
     } finally {
-      setBusyId(null);
+      setBusy(false);
     }
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
+    <main className="mx-auto max-w-page px-4 py-10 sm:px-6">
+      <h1 className="text-3xl font-black tracking-display">{t("title")}</h1>
 
-      <div className="mt-6 flex flex-wrap gap-2 text-sm">
+      <div role="tablist" className="mt-6 flex flex-wrap gap-2">
         {TABS.map((s) => (
           <button
             key={s}
+            role="tab"
+            aria-selected={tab === s}
             type="button"
-            onClick={() => setTab(s)}
-            className={`rounded-full border px-4 py-1.5 ${
-              tab === s ? "border-brand-500 bg-brand-50 text-brand-700" : "border-slate-300 bg-white"
-            }`}
+            onClick={() => {
+              setTab(s);
+              setPending(null);
+            }}
+            className={cx(
+              "rounded-md px-4 py-2 text-sm font-semibold transition-colors",
+              tab === s ? "bg-lapis text-white" : "border border-line bg-surface text-ink-soft hover:text-ink",
+            )}
           >
             {tc(`paymentStatuses.${s}`)}
           </button>
         ))}
       </div>
 
-      {message && <p className="mt-4 rounded-lg bg-slate-100 px-3 py-2 text-sm">{message}</p>}
+      {notice && (
+        <Notice tone={notice.tone} className="mt-5">
+          {notice.text}
+        </Notice>
+      )}
 
-      <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-slate-600">
-            <tr>
-              <th className="px-4 py-2">{t("date")}</th>
-              <th className="px-4 py-2">{t("user")}</th>
-              <th className="px-4 py-2">{t("plan")}</th>
-              <th className="px-4 py-2">{t("amount")}</th>
-              <th className="px-4 py-2">{t("method")}</th>
-              <th className="px-4 py-2" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
-                  {t("empty")}
-                </td>
-              </tr>
-            )}
-            {rows.map((p) => (
-              <tr key={p.id}>
-                <td className="px-4 py-2">{formatDate(p.created_at, locale)}</td>
-                <td className="px-4 py-2">{p.user_email}</td>
-                <td className="px-4 py-2">
-                  {p.plan_code} · {p.duration_days} {t("days")}
-                </td>
-                <td className="px-4 py-2 font-medium">{formatSomoni(p.amount_dirams, locale)}</td>
-                <td className="px-4 py-2">{tc(`methods.${p.method}`)}</td>
-                <td className="space-x-2 whitespace-nowrap px-4 py-2 text-right">
+      <div className="mt-6 divide-y divide-line rounded-lg border border-line bg-surface">
+        {rows === null && <div className="h-24 animate-pulse bg-paper" />}
+        {rows?.length === 0 && <p className="px-5 py-10 text-center text-ink-soft">{t("empty")}</p>}
+        {rows?.map((p) => {
+          const isPending = pending?.id === p.id;
+          const open = p.status === "pending_review" || p.status === "awaiting_receipt";
+          return (
+            <div key={p.id} className="px-5 py-4">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{p.user_email}</p>
+                  <p className="text-sm text-ink-soft">
+                    {formatDate(p.created_at, locale)}, {tc(`methods.${p.method}`)},{" "}
+                    {p.plan_code} ({p.duration_days} {t("days")})
+                  </p>
+                </div>
+                <p className="tabular font-display text-xl font-black text-lapis-deep">
+                  {formatSomoni(p.amount_dirams, locale)}
+                </p>
+                <Badge tone={PAYMENT_TONE[p.status]}>{tc(`paymentStatuses.${p.status}`)}</Badge>
+                <div className="flex flex-wrap gap-2">
                   {p.has_receipt && (
-                    <button
-                      type="button"
-                      className="text-brand-700 underline"
+                    <Button
+                      size="sm"
+                      tone="quiet"
                       onClick={async () =>
-                        setReceipt({
-                          id: p.id,
-                          url: await imageUrl(`/api/admin/payments/${p.id}/receipt`),
-                        })
+                        setReceipt(await imageUrl(`/api/admin/payments/${p.id}/receipt`))
                       }
                     >
                       {t("receipt")}
-                    </button>
+                    </Button>
                   )}
-                  {(p.status === "pending_review" || p.status === "awaiting_receipt") && (
+                  {open && !isPending && (
                     <>
                       {p.status === "pending_review" && (
-                        <button
-                          type="button"
-                          disabled={busyId === p.id}
-                          onClick={() => act(p.id, "confirm")}
-                          className="rounded bg-brand-600 px-3 py-1 text-white disabled:opacity-60"
-                        >
+                        <Button size="sm" tone="success" onClick={() => setPending({ id: p.id, action: "confirm" })}>
                           {t("confirm")}
-                        </button>
+                        </Button>
                       )}
-                      <button
-                        type="button"
-                        disabled={busyId === p.id}
-                        onClick={() => act(p.id, "reject")}
-                        className="rounded bg-red-600 px-3 py-1 text-white disabled:opacity-60"
-                      >
+                      <Button size="sm" tone="quiet" onClick={() => setPending({ id: p.id, action: "reject" })}>
                         {t("reject")}
-                      </button>
+                      </Button>
                     </>
                   )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              </div>
+              {p.reject_reason && <p className="mt-2 text-sm text-pomegranate">{p.reject_reason}</p>}
+
+              {isPending && pending.action === "confirm" && (
+                <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md bg-pistachio-tint px-4 py-3">
+                  <p className="flex-1 text-sm">{t("confirmQuestion", { amount: formatSomoni(p.amount_dirams, locale) })}</p>
+                  <Button size="sm" tone="success" disabled={busy} onClick={() => run(p.id, "confirm")}>
+                    {t("confirmYes")}
+                  </Button>
+                  <Button size="sm" tone="quiet" onClick={() => setPending(null)}>
+                    {t("cancel")}
+                  </Button>
+                </div>
+              )}
+              {isPending && pending.action === "reject" && (
+                <form
+                  className="mt-4 flex flex-wrap items-end gap-3 rounded-md bg-pomegranate-tint px-4 py-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void run(p.id, "reject");
+                  }}
+                >
+                  <label className="min-w-0 flex-1 text-sm font-medium">
+                    {t("rejectReason")}
+                    <input
+                      autoFocus
+                      required
+                      minLength={3}
+                      maxLength={500}
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      className={cx(inputClass, "mt-1 h-10")}
+                    />
+                  </label>
+                  <Button size="sm" tone="danger" type="submit" disabled={busy || reason.trim().length < 3}>
+                    {t("rejectYes")}
+                  </Button>
+                  <Button size="sm" tone="quiet" onClick={() => setPending(null)}>
+                    {t("cancel")}
+                  </Button>
+                </form>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {receipt && (
         <div
-          className="fixed inset-0 z-10 flex items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-20 flex items-center justify-center bg-ink/70 p-4"
           onClick={() => setReceipt(null)}
           role="dialog"
           aria-modal="true"
+          aria-label={t("receipt")}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={receipt.url} alt={t("receipt")} className="max-h-full max-w-full rounded-lg bg-white" />
+          <img src={receipt} alt={t("receipt")} className="max-h-full max-w-full rounded-md bg-white" />
         </div>
       )}
     </main>

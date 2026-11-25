@@ -17,8 +17,16 @@ export function RequireAuth({ role, children }: { role?: Role; children: ReactNo
     if (ready && !user) router.replace("/login");
   }, [ready, user, router]);
 
-  if (!ready || !user) return <p className="p-8 text-center text-slate-500">{t("loading")}</p>;
-  if (role && user.role !== role)
-    return <p className="p-8 text-center text-slate-500">{t("forbidden")}</p>;
+  if (!ready || !user) {
+    return (
+      <div className="mx-auto max-w-page px-4 py-12 sm:px-6" aria-busy="true">
+        <div className="h-56 animate-pulse rounded-pass bg-lapis-tint" />
+        <span className="sr-only">{t("loading")}</span>
+      </div>
+    );
+  }
+  if (role && user.role !== role) {
+    return <p className="mx-auto max-w-page px-4 py-12 text-ink-soft sm:px-6">{t("forbidden")}</p>;
+  }
   return <>{children}</>;
 }

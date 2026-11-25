@@ -13,45 +13,56 @@ export default async function InstructionsPage({
   const t = await getTranslations("instructions");
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-2 text-slate-600">{t("intro")}</p>
+    <main className="mx-auto max-w-page px-4 py-10 sm:px-6">
+      <div className="max-w-prose">
+        <h1 className="text-4xl font-black tracking-display">{t("title")}</h1>
+        <p className="mt-3 text-lg text-ink-soft">{t("intro")}</p>
+      </div>
 
-      <nav className="mt-6 flex gap-2 text-sm">
+      <nav aria-label={t("title")} className="mt-8 flex flex-wrap gap-2">
         {PLATFORMS.map((p) => (
           <a
             key={p}
             href={`#${p}`}
-            className="rounded-full border border-slate-300 bg-white px-4 py-1.5 hover:border-brand-500"
+            className="rounded-md border border-line bg-surface px-4 py-2 text-sm font-semibold hover:border-lapis hover:text-lapis"
           >
             {t(`${p}.name`)}
           </a>
         ))}
       </nav>
 
-      {PLATFORMS.map((p) => (
-        <section
-          key={p}
-          id={p}
-          className="mt-8 scroll-mt-6 rounded-xl border border-slate-200 bg-white p-6"
-        >
-          <h2 className="text-xl font-semibold">{t(`${p}.name`)}</h2>
-          <ol className="mt-4 list-decimal space-y-2 pl-5 text-slate-700">
-            <li>{t(`${p}.step1`)}</li>
-            <li>
-              {t("copyLink")}{" "}
-              <Link href="/cabinet" className="text-brand-700 underline">
-                {t("cabinetLink")}
-              </Link>
-              .
-            </li>
-            <li>{t(`${p}.step3`)}</li>
-            <li>{t(`${p}.step4`)}</li>
-          </ol>
-        </section>
-      ))}
+      <div className="mt-10 grid gap-12 lg:grid-cols-3 lg:gap-10">
+        {PLATFORMS.map((p) => (
+          <section key={p} id={p} className="scroll-mt-20">
+            <h2 className="border-b-2 border-lapis pb-3 text-2xl font-black tracking-display">
+              {t(`${p}.name`)}
+            </h2>
+            <ol className="mt-5 space-y-5">
+              {[
+                t(`${p}.step1`),
+                <>
+                  {t("copyLink")}{" "}
+                  <Link href="/cabinet" className="font-semibold text-lapis underline underline-offset-4">
+                    {t("cabinetLink")}
+                  </Link>
+                  .
+                </>,
+                t(`${p}.step3`),
+                t(`${p}.step4`),
+              ].map((step, i) => (
+                <li key={i} className="grid grid-cols-[2rem_1fr] gap-3">
+                  <span className="tabular font-display text-xl font-black text-lapis">{i + 1}</span>
+                  <p className="text-ink">{step}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))}
+      </div>
 
-      <p className="mt-8 rounded-lg bg-brand-50 p-4 text-sm text-brand-900">{t("devicesNote")}</p>
+      <p className="mt-12 max-w-prose border-l-4 border-saffron bg-saffron-tint px-4 py-3 text-sm text-[#6b430a]">
+        {t("devicesNote")}
+      </p>
     </main>
   );
 }

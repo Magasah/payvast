@@ -3,40 +3,45 @@
 import { useLocale, useTranslations } from "next-intl";
 
 import { useAuth } from "@/components/AuthProvider";
+import { ButtonLink } from "@/components/ui";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
 import { logout } from "@/lib/api";
+
+const navLink = "rounded-md px-2 py-1.5 text-sm font-medium text-ink-soft hover:text-lapis";
 
 export function Header() {
   const t = useTranslations("nav");
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
-
-  const otherLocale = locale === "tg" ? "ru" : "tg";
+  const { user, ready } = useAuth();
+  const other = locale === "tg" ? "ru" : "tg";
 
   return (
-    <header className="border-b border-slate-200 bg-white">
-      <nav className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3 text-sm">
-        <Link href="/" className="mr-auto text-lg font-bold text-brand-700">
+    <header className="border-b border-line bg-surface/90 backdrop-blur supports-[backdrop-filter]:bg-surface/75">
+      <nav className="mx-auto flex h-16 max-w-page items-center gap-1 px-4 sm:gap-3 sm:px-6">
+        <Link
+          href="/"
+          className="mr-auto font-display text-xl font-black tracking-display text-lapis-deep"
+        >
           Payvast
         </Link>
-        <Link href="/instructions" className="hover:text-brand-700">
+        <Link href="/instructions" className={`${navLink} hidden sm:inline`}>
           {t("instructions")}
         </Link>
+        {user?.role === "admin" && (
+          <Link href="/admin/payments" className={navLink}>
+            {t("admin")}
+          </Link>
+        )}
         {user ? (
           <>
-            <Link href="/cabinet" className="hover:text-brand-700">
+            <Link href="/cabinet" className={navLink}>
               {t("cabinet")}
             </Link>
-            {user.role === "admin" && (
-              <Link href="/admin/payments" className="hover:text-brand-700">
-                {t("admin")}
-              </Link>
-            )}
             <button
               type="button"
-              className="hover:text-brand-700"
+              className={navLink}
               onClick={async () => {
                 await logout();
                 router.push("/");
@@ -47,24 +52,21 @@ export function Header() {
           </>
         ) : (
           <>
-            <Link href="/login" className="hover:text-brand-700">
+            <Link href="/login" className={navLink} aria-disabled={!ready}>
               {t("login")}
             </Link>
-            <Link
-              href="/register"
-              className="rounded-md bg-brand-600 px-3 py-1.5 font-medium text-white hover:bg-brand-700"
-            >
+            <ButtonLink href="/register" size="sm" className="hidden sm:inline-flex">
               {t("register")}
-            </Link>
+            </ButtonLink>
           </>
         )}
         <button
           type="button"
-          onClick={() => router.replace(pathname, { locale: otherLocale })}
-          className="rounded border border-slate-300 px-2 py-1 text-xs uppercase"
-          aria-label={t("language")}
+          lang={other}
+          onClick={() => router.replace(pathname, { locale: other })}
+          className="ml-1 rounded-md border border-line px-2.5 py-1 text-xs font-semibold text-ink-soft hover:border-lapis hover:text-lapis"
         >
-          {otherLocale}
+          {t("switchTo")}
         </button>
       </nav>
     </header>

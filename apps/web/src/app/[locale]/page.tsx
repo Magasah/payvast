@@ -1,7 +1,8 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
-import { PlanCard } from "@/components/PlanCard";
-import { Link } from "@/i18n/routing";
+import { Pass } from "@/components/Pass";
+import { TariffRow } from "@/components/TariffRow";
+import { ButtonLink } from "@/components/ui";
 import { fetchPlans } from "@/lib/server-api";
 
 export default async function HomePage({ params: { locale } }: { params: { locale: string } }) {
@@ -10,41 +11,58 @@ export default async function HomePage({ params: { locale } }: { params: { local
   const tp = await getTranslations("plans");
   const plans = await fetchPlans();
 
+  const labels = {
+    perMonth: tp("perMonth"),
+    devices: (n: number) => tp("devicesN", { n }),
+    days: (n: number) => tp("daysN", { n }),
+  };
+
   return (
     <main>
-      <section className="bg-gradient-to-b from-brand-50 to-slate-50">
-        <div className="mx-auto max-w-5xl px-4 py-16 text-center">
-          <h1 className="text-3xl font-bold sm:text-4xl">{t("title")}</h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">{t("subtitle")}</p>
-          <Link
-            href="/register"
-            className="mt-8 inline-block rounded-lg bg-brand-600 px-6 py-3 font-medium text-white hover:bg-brand-700"
-          >
-            {t("cta")}
-          </Link>
+      <section className="mx-auto grid max-w-page items-center gap-10 px-4 pb-14 pt-10 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pb-20 lg:pt-16">
+        <div className="max-w-prose">
+          <h1 className="text-4xl font-black leading-[1.05] tracking-display sm:text-5xl">
+            {t("title")}
+          </h1>
+          <p className="mt-5 text-lg text-ink-soft">{t("subtitle")}</p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <ButtonLink href="/register" size="lg">
+              {t("cta")}
+            </ButtonLink>
+            <ButtonLink href="/instructions" size="lg" tone="quiet">
+              {t("ctaSecondary")}
+            </ButtonLink>
+          </div>
+          <p className="mt-6 text-sm text-ink-soft">{t("payWith")}</p>
         </div>
+        <Pass
+          animate
+          className="lg:rotate-[1.5deg]"
+          big="30"
+          bigLabel={t("passDays")}
+          lines={[t("passLine1"), t("passLine2")]}
+        />
       </section>
 
-      <section className="mx-auto max-w-5xl px-4 py-12">
-        <h2 className="text-2xl font-bold">{tp("title")}</h2>
+      <section id="plans" className="mx-auto max-w-page scroll-mt-20 px-4 sm:px-6">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <h2 className="text-3xl font-black tracking-display">{tp("title")}</h2>
+          <p className="text-sm text-ink-soft">{tp("note")}</p>
+        </div>
         {plans.length === 0 ? (
-          <p className="mt-4 text-slate-500">{tp("empty")}</p>
+          <p className="mt-6 text-ink-soft">{tp("empty")}</p>
         ) : (
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {plans.map((plan, i) => (
-              <PlanCard
+          <div className="mt-6 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
+            {plans.map((plan) => (
+              <TariffRow
                 key={plan.id}
                 plan={plan}
                 locale={locale}
-                highlighted={i === 1}
-                labels={{ days: tp("days"), devices: tp("devices") }}
+                labels={labels}
                 action={
-                  <Link
-                    href="/cabinet"
-                    className="block rounded-lg bg-brand-600 px-4 py-2 text-center font-medium text-white hover:bg-brand-700"
-                  >
+                  <ButtonLink href="/cabinet" tone="quiet" className="w-full sm:w-auto">
                     {tp("choose")}
-                  </Link>
+                  </ButtonLink>
                 }
               />
             ))}
@@ -52,15 +70,14 @@ export default async function HomePage({ params: { locale } }: { params: { local
         )}
       </section>
 
-      <section className="mx-auto max-w-5xl px-4 pb-16">
-        <h2 className="text-2xl font-bold">{t("howTitle")}</h2>
-        <ol className="mt-6 grid gap-4 sm:grid-cols-3">
+      <section className="mx-auto max-w-page px-4 pt-16 sm:px-6">
+        <h2 className="text-3xl font-black tracking-display">{t("howTitle")}</h2>
+        <ol className="mt-8 grid gap-8 sm:grid-cols-3 sm:gap-10">
           {(["step1", "step2", "step3"] as const).map((key, i) => (
-            <li key={key} className="rounded-xl border border-slate-200 bg-white p-5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 font-bold text-brand-700">
-                {i + 1}
-              </span>
-              <p className="mt-3 text-slate-700">{t(key)}</p>
+            <li key={key} className="border-t-2 border-lapis pt-4">
+              <span className="tabular font-display text-3xl font-black text-lapis">{i + 1}</span>
+              <h3 className="mt-2 text-lg font-extrabold">{t(`${key}Title`)}</h3>
+              <p className="mt-1 text-ink-soft">{t(key)}</p>
             </li>
           ))}
         </ol>
