@@ -3,12 +3,15 @@
 TEST_DATABASE_URL must point to a database that can be dropped and recreated.
 """
 
+import io
 import os
+import tempfile
 from collections.abc import AsyncIterator
 from pathlib import Path
 
 import pytest
 from dotenv import dotenv_values
+from PIL import Image
 
 _env_file = dotenv_values(Path(__file__).resolve().parents[1] / ".env")
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL") or _env_file.get("TEST_DATABASE_URL")
@@ -19,6 +22,9 @@ if not TEST_DATABASE_URL:
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ["ENV"] = "test"
 os.environ["RATE_LIMIT_ENABLED"] = "false"
+os.environ["UPLOAD_DIR"] = tempfile.mkdtemp(prefix="payvast-test-uploads-")
+os.environ["PAYMENT_WALLET_ALIF"] = "+992000000000"
+os.environ["PAYMENT_WALLET_DC"] = "+992000000001"
 os.environ.setdefault("JWT_SECRET", "test-secret-test-secret-test-secret-123")
 
 from httpx import ASGITransport, AsyncClient  # noqa: E402
@@ -29,7 +35,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E4
 from app import models  # noqa: E402, F401
 from app.db import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import User, UserRole  # noqa: E402
+from app.models import Plan, Server, User, UserRole  # noqa: E402
 from app.security import create_access_token, hash_password  # noqa: E402
 
 
@@ -91,3 +97,34 @@ async def make_user(
 
 def auth_header(user: User) -> dict[str, str]:
     return {"Authorization": f"Bearer {create_access_token(user.id, user.role.value)}"}
+
+
+async def make_plan(session: AsyncSession, **overrides: object) -> Plan:
+    data: dict[str, object] = {
+        "code": "m1",
+        "name_tg": "1 моҳ",
+        "name_ru": "1 месяц",
+        "price_dirams": 5000,
+        "duration_days": 30,
+        "device_limit": 2,
+    }
+    data.update(overrides)
+    plan = Plan(**data)
+    session.add(plan)
+    await session.commit()
+    await session.refresh(plan)
+    return plan
+
+
+async def make_server(session: AsyncSession, name: str = "s1") -> Server:
+    server = Server(name=name, host=f"{name}.example", country="NL")
+    session.add(server)
+    await session.commit()
+    await session.refresh(server)
+    return server
+
+
+def png_bytes(size: tuple[int, int] = (20, 20)) -> bytes:
+    buf = io.BytesIO()
+    Image.new("RGB", size, (10, 120, 80)).save(buf, format="PNG")
+    return buf.getvalue()
