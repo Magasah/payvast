@@ -1,15 +1,26 @@
 """PaymentProvider: how a user pays. MVP has only manual transfer + receipt."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Literal
 
 from app.models import PaymentMethod
 
 
 @dataclass(frozen=True, slots=True)
+class BankLink:
+    code: str  # alif | dc | sber | tbank: the web app shows the bank name by this code
+    url: str
+
+
+@dataclass(frozen=True, slots=True)
 class PaymentInstructions:
     method: PaymentMethod
-    wallet: str
+    account_kind: Literal["phone", "card"]
+    account: str
+    recipient: str
+    fee_percent: int = 0
+    banks: tuple[BankLink, ...] = field(default_factory=tuple)
 
 
 class PaymentProvider(ABC):

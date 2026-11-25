@@ -226,7 +226,7 @@ async def test_admin_endpoints_require_admin(
         ("GET", "/api/admin/servers"),
     ]:
         r = await client.request(method, url, headers=auth_header(user))
-        assert r.status_code == 403, url
+        assert r.status_code == 404, url  # the admin area does not reveal itself
 
 
 async def test_admin_lists_pending_and_views_receipt(

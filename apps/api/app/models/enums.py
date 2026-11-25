@@ -22,3 +22,4 @@ class PaymentStatus(enum.StrEnum):
 class PaymentMethod(enum.StrEnum):
     ALIF = "alif"
     DUSHANBE_CITY = "dushanbe_city"
+    CARD = "card"

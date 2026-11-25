@@ -7,6 +7,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.db import get_session
 from app.models import User, UserRole
 from app.security import TokenError, decode_token
@@ -42,9 +43,24 @@ async def get_current_user(
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
+def is_admin(user: User) -> bool:
+    """Admin = role admin AND a Telegram id from ADMIN_TELEGRAM_IDS AND an active account.
+
+    The role alone is never enough: even a row edited by hand in the DB, or an old email
+    admin, gets no access unless its Telegram id is in the env list.
+    """
+    return (
+        user.is_active
+        and user.role == UserRole.ADMIN
+        and user.telegram_id is not None
+        and user.telegram_id in get_settings().admin_ids
+    )
+
+
 async def require_admin(user: CurrentUser) -> User:
-    if user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
+    if not is_admin(user):
+        # 404, not 403: the admin area does not reveal that it exists.
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not_found")
     return user
 
 

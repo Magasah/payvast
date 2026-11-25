@@ -44,6 +44,13 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
 
+  bot:
+    build: ../apps/bot
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - api
+
 volumes:
   db_data:
   uploads:

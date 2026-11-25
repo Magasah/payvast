@@ -33,12 +33,25 @@ class LoginIn(BaseModel):
 
 
 class UserOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     id: uuid.UUID
-    email: str
+    email: str | None
+    telegram_username: str | None
+    has_telegram: bool
     role: UserRole
+    is_admin: bool
     locale: str
+
+
+class TelegramLoginIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    init_data: str = Field(min_length=1, max_length=4096)
+
+
+class LocaleIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    locale: Literal["tg", "ru"]
 
 
 class TokenOut(BaseModel):

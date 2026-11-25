@@ -1,6 +1,6 @@
 # Payvast
 
-Подписка на защищённое подключение (VLESS + Reality, Xray) с оплатой через Алиф и Душанбе Сити.
+Подписка на защищённое подключение (VLESS + Reality, Xray) с оплатой через Алиф, Душанбе Сити и банковскую карту.
 Интерфейс на таджикском (по умолчанию) и русском.
 
 ## Быстрый старт (Docker)
@@ -17,9 +17,12 @@ docker compose -f infra/docker-compose.yml up -d --build
 # Демо-тарифы и тестовый сервер (MockPanelAdapter)
 docker compose -f infra/docker-compose.yml exec api python -m app.cli seed-demo
 
-# Первый админ (пароль спросит в терминале, минимум 12 символов)
-docker compose -f infra/docker-compose.yml exec api python -m app.cli create-admin --email you@example.com
 ```
+
+**Админ.** Админом может быть только тот, чей Telegram ID указан в `ADMIN_TELEGRAM_IDS`
+в `infra/.env`. Команды «сделать админом» нет. Откройте бота, нажмите «Открыть приложение»,
+и вход произойдёт через Telegram. Для всех остальных адреса `/admin` и `/api/admin/*`
+отвечают 404.
 
 Откройте http://localhost:3000. Миграции применяются автоматически при старте API.
 
@@ -37,14 +40,15 @@ cat > .env <<'ENV'
 DATABASE_URL=postgresql+asyncpg://payvast:<пароль>@localhost:5432/payvast
 TEST_DATABASE_URL=postgresql+asyncpg://payvast:<пароль>@localhost:5432/payvast_test
 JWT_SECRET=<случайная строка от 32 символов>
-PAYMENT_WALLET_ALIF=+992...
-PAYMENT_WALLET_DC=+992...
+PAYMENT_ALIF_ACCOUNT=+992...
+PAYMENT_ALIF_RECIPIENT=...
+ADMIN_TELEGRAM_IDS=<ваш Telegram ID>
+TELEGRAM_BOT_TOKEN=<токен бота>
 UPLOAD_DIR=./uploads
 ENV
 uv sync
 uv run alembic upgrade head
 uv run python -m app.cli seed-demo
-uv run python -m app.cli create-admin --email you@example.com
 uv run uvicorn app.main:app --reload --no-access-log      # http://localhost:8000/api/docs
 
 # Web (в другом терминале)

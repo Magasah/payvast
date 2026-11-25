@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -28,6 +29,15 @@ class PaymentOut(BaseModel):
     confirmed_at: datetime | None
 
 
+class BankLinkOut(BaseModel):
+    code: str
+    url: str
+
+
 class PaymentMethodOut(BaseModel):
     method: PaymentMethod
-    wallet: str
+    account_kind: Literal["phone", "card"]
+    account: str
+    recipient: str
+    fee_percent: int
+    banks: list[BankLinkOut]

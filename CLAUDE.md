@@ -32,7 +32,7 @@ uv run mypy app
 uv run pytest                      # needs TEST_DATABASE_URL (PostgreSQL)
 uv run alembic upgrade head
 uv run alembic revision --autogenerate -m "message"
-uv run python -m app.cli create-admin --email admin@example.com
+uv run python -m app.cli seed-demo
 
 # Web (from apps/web)
 npm install
@@ -50,7 +50,12 @@ npm run dev                        # proxies /api/* to API_INTERNAL_URL (default
 - **Money**: confirming a payment and extending a subscription happen in ONE transaction with
   `SELECT ... FOR UPDATE` on the payment row, a status check, and a unique idempotency key.
   Never split this into separate transactions. Prices are integers in dirams (1 somoni = 100).
-- **Admin**: every admin endpoint requires role `admin` and writes to `admin_audit_log`.
+- **Admin**: admin = role `admin` AND `telegram_id` in `ADMIN_TELEGRAM_IDS` (env) AND active
+  (`deps.is_admin`). Never add another way to become admin (no CLI, signup field, link or
+  endpoint). Non-admins get 404 from admin routes. Every admin action writes `admin_audit_log`.
+- **Telegram**: Mini App sign-in verifies initData HMAC (`app/telegram/initdata.py`).
+  Bot-only endpoints live under `/api/internal/bot/*` (header `X-Bot-Secret`); the Next.js
+  proxy never forwards `/api/internal/*`.
 
 ## Security rules
 

@@ -27,9 +27,16 @@ async def create(
     )
 
 
-async def test_methods_show_wallets(client: AsyncClient) -> None:
+async def test_methods_show_requisites(client: AsyncClient) -> None:
     r = await client.get("/api/payments/methods")
-    assert {m["method"] for m in r.json()} == {"alif", "dushanbe_city"}
+    methods = {m["method"]: m for m in r.json()}
+    assert set(methods) == {"alif", "dushanbe_city", "card"}
+    assert methods["alif"]["account_kind"] == "phone"
+    assert methods["alif"]["recipient"] == "M.M"
+    assert methods["dushanbe_city"]["fee_percent"] == 1
+    assert methods["card"]["account_kind"] == "card"
+    assert {b["code"] for b in methods["card"]["banks"]} == {"sber", "tbank"}
+    assert all(b["url"].startswith("https://") for m in methods.values() for b in m["banks"])
 
 
 async def test_create_payment_snapshots_plan(client: AsyncClient, session: AsyncSession) -> None:

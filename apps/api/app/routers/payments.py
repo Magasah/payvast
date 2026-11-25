@@ -4,7 +4,17 @@ import re
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, File, Header, HTTPException, Request, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    File,
+    Header,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
@@ -13,8 +23,10 @@ from app.deps import CurrentUser, SessionDep
 from app.models import Payment, PaymentStatus, Plan
 from app.payments import get_payment_provider
 from app.ratelimit import limiter
-from app.schemas.payment import PaymentCreateIn, PaymentMethodOut, PaymentOut
+from app.schemas.payment import BankLinkOut, PaymentCreateIn, PaymentMethodOut, PaymentOut
 from app.services.receipts import delete_receipt, save_receipt
+from app.telegram.notify import notify_admins_new_receipt
+from app.utils import format_tjs
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 settings = get_settings()
@@ -42,7 +54,15 @@ def to_out(p: Payment) -> PaymentOut:
 @router.get("/methods", response_model=list[PaymentMethodOut])
 async def payment_methods() -> list[PaymentMethodOut]:
     return [
-        PaymentMethodOut(method=m.method, wallet=m.wallet) for m in get_payment_provider().methods()
+        PaymentMethodOut(
+            method=m.method,
+            account_kind=m.account_kind,
+            account=m.account,
+            recipient=m.recipient,
+            fee_percent=m.fee_percent,
+            banks=[BankLinkOut(code=b.code, url=b.url) for b in m.banks],
+        )
+        for m in get_payment_provider().methods()
     ]
 
 
@@ -132,6 +152,7 @@ async def upload_receipt(
     payment_id: uuid.UUID,
     user: CurrentUser,
     session: SessionDep,
+    background: BackgroundTasks,
     file: Annotated[UploadFile, File()],
 ) -> PaymentOut:
     payment = await session.scalar(
@@ -157,4 +178,23 @@ async def upload_receipt(
     if old_name:
         delete_receipt(old_name)
     await session.refresh(payment)
+    plan_code = await session.scalar(select(Plan.code).where(Plan.id == payment.plan_id))
+    background.add_task(
+        notify_admins_new_receipt,
+        str(payment.id),
+        format_tjs(payment.amount_dirams),
+        plan_code or "?",
+        payment.method.value,
+        f"@{user.telegram_username}" if user.telegram_username else (user.email or "telegram"),
+    )
+    return to_out(payment)
+
+
+@router.get("/{payment_id}", response_model=PaymentOut)
+async def get_payment(payment_id: uuid.UUID, user: CurrentUser, session: SessionDep) -> PaymentOut:
+    payment = await session.scalar(
+        select(Payment).where(Payment.id == payment_id, Payment.user_id == user.id)
+    )
+    if payment is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="not_found")
     return to_out(payment)

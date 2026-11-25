@@ -23,8 +23,17 @@ os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ["ENV"] = "test"
 os.environ["RATE_LIMIT_ENABLED"] = "false"
 os.environ["UPLOAD_DIR"] = tempfile.mkdtemp(prefix="payvast-test-uploads-")
-os.environ["PAYMENT_WALLET_ALIF"] = "+992000000000"
-os.environ["PAYMENT_WALLET_DC"] = "+992000000001"
+os.environ["PAYMENT_ALIF_ACCOUNT"] = "+992000000000"
+os.environ["PAYMENT_ALIF_RECIPIENT"] = "M.M"
+os.environ["PAYMENT_DC_ACCOUNT"] = "+992000000001"
+os.environ["PAYMENT_DC_RECIPIENT"] = "M.M"
+os.environ["PAYMENT_CARD_NUMBER"] = "5413 0000 0000 0000"
+os.environ["PAYMENT_CARD_RECIPIENT"] = "M.M"
+os.environ["ADMIN_TELEGRAM_IDS"] = "111111"
+os.environ["TELEGRAM_BOT_TOKEN"] = "123456:test-bot-token"
+os.environ["TELEGRAM_API_BASE"] = "http://telegram.invalid"
+os.environ["BOT_API_SECRET"] = "bot-secret-bot-secret-bot-secret"
+os.environ["WEB_APP_URL"] = ""
 os.environ.setdefault("JWT_SECRET", "test-secret-test-secret-test-secret-123")
 
 from httpx import ASGITransport, AsyncClient  # noqa: E402
@@ -82,13 +91,24 @@ async def client() -> AsyncIterator[AsyncClient]:
         yield c
 
 
+ADMIN_TG_ID = 111111
+
+
 async def make_user(
     session: AsyncSession,
-    email: str = "user@example.com",
+    email: str | None = "user@example.com",
     password: str = "correct-horse-1",
     role: UserRole = UserRole.USER,
+    telegram_id: int | None = None,
 ) -> User:
-    user = User(email=email, password_hash=hash_password(password), role=role)
+    if role == UserRole.ADMIN and telegram_id is None:
+        telegram_id = ADMIN_TG_ID
+    user = User(
+        email=email,
+        password_hash=hash_password(password) if email else None,
+        role=role,
+        telegram_id=telegram_id,
+    )
     session.add(user)
     await session.commit()
     await session.refresh(user)
