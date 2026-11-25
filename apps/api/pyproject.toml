@@ -1,0 +1,63 @@
+[project]
+name = "payvast-api"
+version = "0.1.0"
+description = "Payvast API: subscriptions for secure connection"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.32,<1",
+  "sqlalchemy[asyncio]>=2.0.36,<2.1",
+  "asyncpg>=0.30,<1",
+  "alembic>=1.14,<2",
+  "pydantic>=2.9,<3",
+  "pydantic-settings>=2.6,<3",
+  "argon2-cffi>=23.1",
+  "pyjwt>=2.10,<3",
+  "slowapi>=0.1.9,<0.2",
+  "python-multipart>=0.0.18",
+  "pillow>=11,<13",
+  "qrcode>=8,<9",
+  "email-validator>=2.2",
+  "httpx>=0.28,<1",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3,<9",
+  "pytest-asyncio>=0.24,<2",
+  "httpx>=0.28,<1",
+  "ruff>=0.8",
+  "mypy>=1.13",
+  "python-dotenv>=1.2.4",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "SIM", "RUF"]
+ignore = [
+  "B008",    # FastAPI Depends() in defaults
+  "RUF001",  # Cyrillic text is expected (tg/ru UI)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S107"]
+"alembic/**" = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true

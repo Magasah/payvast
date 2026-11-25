@@ -1,0 +1,57 @@
+name: payvast
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # Only bound to localhost for local tools (psql, tests). Not exposed publicly.
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  api:
+    build: ../apps/api
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/data/uploads
+    expose:
+      - "8000"
+
+  web:
+    build:
+      context: ../apps/web
+      args:
+        API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
+        NEXT_PUBLIC_TG_BOT_USERNAME: ${TG_BOT_USERNAME:-}
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  bot:
+    build: ../apps/bot
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - api
+
+volumes:
+  db_data:
+  uploads:

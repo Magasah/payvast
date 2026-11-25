@@ -1,0 +1,123 @@
+/* Payvast design tokens. See DESIGN.md for the rules behind them. */
+
+@font-face {
+  font-family: "Commissioner Flair";
+  src: url("/fonts/commissioner-latin.woff2") format("woff2");
+  font-weight: 600 900;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2116, U+2212;
+}
+@font-face {
+  font-family: "Commissioner Flair";
+  src: url("/fonts/commissioner-cyrillic.woff2") format("woff2");
+  font-weight: 600 900;
+  font-display: swap;
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1;
+}
+@font-face {
+  font-family: "Commissioner Flair";
+  src: url("/fonts/commissioner-cyrillic-ext.woff2") format("woff2");
+  font-weight: 600 900;
+  font-display: swap;
+  unicode-range: U+0460-052F;
+}
+@font-face {
+  font-family: "Golos Text";
+  src: url("/fonts/golos-text-latin.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2116, U+2212;
+}
+@font-face {
+  font-family: "Golos Text";
+  src: url("/fonts/golos-text-cyrillic.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1;
+}
+@font-face {
+  font-family: "Golos Text";
+  src: url("/fonts/golos-text-cyrillic-ext.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+  unicode-range: U+0460-052F;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Base */
+    --c-paper: 242 244 248; /* #F2F4F8 cool mist, page background */
+    --c-surface: 255 255 255; /* panels */
+    --c-ink: 22 32 61; /* #16203D lapis ink, text */
+    --c-ink-soft: 74 85 119; /* #4A5577 secondary text */
+    --c-line: 217 222 234; /* #D9DEEA borders */
+    /* Brand: Badakhshan lapis + atlas-silk accents */
+    --c-lapis: 36 67 156; /* #24439C primary */
+    --c-lapis-deep: 23 46 110; /* #172E6E hover, pass background */
+    --c-lapis-tint: 227 233 247; /* #E3E9F7 */
+    --c-pomegranate: 199 53 76; /* #C7354C accent, errors */
+    --c-pomegranate-tint: 251 231 234;
+    --c-saffron: 217 142 31; /* #D98E1F waiting states */
+    --c-saffron-tint: 252 240 219;
+    --c-saffron-ink: 138 86 12; /* #8A560C saffron text on light backgrounds (AA) */
+    --c-pistachio: 47 125 79; /* #2F7D4F success, active */
+    --c-pistachio-tint: 225 241 231;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-paper font-text text-base text-ink antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display text-ink;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 3px solid rgb(var(--c-lapis) / 0.55);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+}
+
+/* The one orchestrated motion: the pass's silk edge unrolls once on first paint. */
+@keyframes unroll {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.animate-unroll {
+  animation: unroll 900ms cubic-bezier(0.2, 0.7, 0.1, 1) 150ms both;
+}
