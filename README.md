@@ -68,6 +68,29 @@ cd apps/web && npm run lint && npm run typecheck && npm run build
 Главный тест денег: `tests/test_billing.py::test_parallel_double_confirm_counts_payment_once`,
 10 параллельных подтверждений одного платежа продлевают подписку ровно один раз.
 
+## Telegram
+
+1. В `infra/.env` задайте `TELEGRAM_BOT_TOKEN`, `BOT_API_SECRET` (случайная строка),
+   `ADMIN_TELEGRAM_IDS` (ваш числовой ID), `TG_BOT_USERNAME` и `WEB_APP_URL`.
+2. `WEB_APP_URL` должен быть публичным адресом сайта с **https**: только тогда Telegram
+   показывает кнопку «Открыть приложение». Без https бот работает, но эта кнопка скрыта.
+3. Сайт открывается внутри Telegram и входит сам по подписанным данным Telegram
+   (`/api/auth/telegram`). Пароль не нужен.
+4. Уведомления: админу приходит сообщение о новом чеке, клиенту о подтверждении или
+   отказе с причиной (только тем, кто вошёл через Telegram).
+
+Бот обращается к API только через `/api/internal/bot/*` с заголовком `X-Bot-Secret`.
+Сайт никогда не пропускает этот путь наружу.
+
+## Защита
+
+- Админ только по Telegram ID из `.env`; всем остальным админка и `/api/admin/*` отвечают 404.
+- Лимиты запросов по IP (вход, регистрация, оплата, Telegram) и блокировка аккаунта на
+  15 минут после 8 неверных паролей подряд.
+- Ограничение размера запроса, CSP, HSTS, `nosniff`, без `dangerouslySetInnerHTML`.
+- От DDoS на уровне сети приложение само не защитит: ставьте сайт за Cloudflare (или
+  аналог) и закройте прямой доступ к серверу, кроме портов 80/443 от прокси.
+
 ## Как это работает
 
 1. Пользователь регистрируется и выбирает тариф.
@@ -86,7 +109,7 @@ VPN-панель выбирается переменной `PANEL_ADAPTER`. Се
 ```
 apps/api   FastAPI + SQLAlchemy + Alembic
 apps/web   Next.js 14 + next-intl + Tailwind
-apps/bot   aiogram 3 (заготовка)
+apps/bot   aiogram 3: меню профиля, языка и запуск приложения
 infra      docker-compose.yml, .env.example
 ```
 

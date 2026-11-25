@@ -13,7 +13,7 @@ QR code, expiry date and setup instructions (Android, iOS, Windows).
 |-------------|----------------------------------------------------------------------------|
 | `apps/api`  | FastAPI, Python 3.12, SQLAlchemy 2.0 async, Alembic, Pydantic v2 (uv)      |
 | `apps/web`  | Next.js 14 App Router, TypeScript, Tailwind, next-intl (`tg`/`ru`)         |
-| `apps/bot`  | aiogram 3 stub only, no business logic yet                                 |
+| `apps/bot`  | aiogram 3: inline menu (profile, language, Mini App), talks only to the API  |
 | `infra`     | `docker-compose.yml` (db, api, web), `.env.example`                        |
 
 The stack is fixed. Do not change it without the owner's consent.
