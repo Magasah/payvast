@@ -67,3 +67,9 @@ npm run dev                        # proxies /api/* to API_INTERNAL_URL (default
 ## Workflow
 
 Small steps. After each step run ruff, mypy, pytest (api) and eslint, tsc (web).
+
+## Networking
+
+The API container is not published to the host; only `web` is. Next.js proxies `/api/*`
+to the API, and uvicorn trusts `X-Forwarded-For` (`--forwarded-allow-ips='*'`) so rate limits
+see the real client IP. Never publish the API port directly, or that header becomes spoofable.
